@@ -18,32 +18,33 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-public class MainActivity extends AppCompatActivity, BaseAdapter {
+public class MainActivity extends AppCompatActivity {
 
+    MyListAdapter myListAdapter;
+    ListView myList;
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothLeScanner bluetoothLeScanner;
-    private ArrayList<BluetoothDeviceParameters> myListItems ;
-    ArrayAdapter<BluetoothDeviceParameters> adapter;
-
-    private Handler handler = new Handler();
 
     // Stops scanning after 10 seconds.
     private static final long SCAN_PERIOD = 10000;
 
     public MainActivity()
     {
-       myListItems = new ArrayList<BluetoothDeviceParameters>();
     }
 
 
@@ -96,14 +97,19 @@ public class MainActivity extends AppCompatActivity, BaseAdapter {
         }
 
 
+        myList = (ListView)findViewById(R.id.ListViewBleDevices);
+        myListAdapter = new MyListAdapter(this.getLayoutInflater());
+        myList.setAdapter(myListAdapter);
+        myList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                BluetoothDeviceParameters item = (BluetoothDeviceParameters)myListAdapter.getItem(position);
+                Toast toast = Toast.makeText(getApplicationContext(), item.Name, Toast.LENGTH_SHORT);
+                toast.show();
+            }
+        });
+
         setContentView(R.layout.activity_main);
-        adapter = new ArrayAdapter<BluetoothDeviceParameters>(this,
-                android.R.layout.simple_list_item_1,
-                myListItems);
-
-       ListView mListView = (ListView) findViewById(R.id.ListViewBleDevices);
-
-       mListView.setAdapter(adapter);
 
         Button button = (Button) findViewById(R.id.button);
         button.setOnClickListener(new View.OnClickListener() {
@@ -114,6 +120,11 @@ public class MainActivity extends AppCompatActivity, BaseAdapter {
             }
         });
 
+    }
+
+    public static class ViewHolder
+    {
+      TextView bluetoothDeviceParameters;
     }
 
     private void scanLeDevice() {
@@ -142,8 +153,8 @@ public class MainActivity extends AppCompatActivity, BaseAdapter {
                     public void onScanResult(int callbackType, ScanResult result) {
 
                         BluetoothDevice device = result.getDevice();
-                       myListItems.add(new BluetoothDeviceParameters(device.getAddress(), device.getName()));
-                       adapter.notifyDataSetChanged();
+                        myListAdapter.addItem(new BluetoothDeviceParameters(device.getAddress(), device.getName()));
+                       myListAdapter.notifyDataSetChanged();
                        bluetoothLeScanner.stopScan(leScanCallback);
                     }
                 };
@@ -162,14 +173,52 @@ public class MainActivity extends AppCompatActivity, BaseAdapter {
                 }
             });
 
-    @Override
-    public View getView(int position, View view, ViewGroup parent)
-    {
-        RecyclerView.ViewHolder viewHolder;
+    private class MyListAdapter extends BaseAdapter{
 
-        if(view == null)
-        {
-            view =
+        public MyListAdapter(LayoutInflater inflater){
+            super();
+            mInflanter = inflater;
+            myListItems = new ArrayList<>();
+        }
+
+        private LayoutInflater mInflanter;
+        private ArrayList<BluetoothDeviceParameters> myListItems;
+
+        public void addItem(BluetoothDeviceParameters item){
+            myListItems.add(item);
+        }
+
+        @Override
+        public int getCount() {
+            return myListItems.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return myListItems.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
+        public View getView(int position, View view, ViewGroup parent) {
+
+           ViewHolder viewHolder;
+            if(view == null){
+                view = mInflanter.inflate(R.layout.activity_main, null);
+                viewHolder = new ViewHolder();
+
+                view.setTag(viewHolder);
+            } else {
+                viewHolder = (ViewHolder)view.getTag();
+            }
+
+            BluetoothDeviceParameters item = myListItems.get(position);
+
+            return view;
         }
     }
 }
