@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.example.android.bluetoothlegatt;
+package com.example.mitr_ble_example;
 
 import android.annotation.SuppressLint;
 import android.app.Service;

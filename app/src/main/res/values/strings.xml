@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">MITR-BLE-EXAMPLE</string>
+    <string name="Connect">Scan</string>
 </resources>
