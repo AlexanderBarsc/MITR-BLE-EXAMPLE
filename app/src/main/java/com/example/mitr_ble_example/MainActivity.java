@@ -2,6 +2,7 @@ package com.example.mitr_ble_example;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
@@ -9,7 +10,12 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanResult;
@@ -91,6 +97,42 @@ public class MainActivity extends AppCompatActivity {
             // for ActivityCompat#requestPermissions for more details.
         }
 
+        BluetoothGattCallback serverCallback = new BluetoothGattCallback() {
+            @Override
+            public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+
+                if(BluetoothProfile.STATE_CONNECTED == newState)
+                {
+                    Toast toast = Toast.makeText(getApplicationContext(), "Connect to device", Toast.LENGTH_SHORT);
+                    toast.show();
+                }
+
+                // super.onConnectionStateChange(gatt, status, newState);
+            }
+
+            @Override
+            public void onCharacteristicRead(@NonNull BluetoothGatt gatt, @NonNull BluetoothGattCharacteristic characteristic, @NonNull byte[] value, int status) {
+                super.onCharacteristicRead(gatt, characteristic, value, status);
+            }
+
+            @Override
+            public void onCharacteristicChanged(@NonNull BluetoothGatt gatt,
+                                                @NonNull BluetoothGattCharacteristic characteristic, @NonNull byte[] value) {
+                super.onCharacteristicChanged(gatt, characteristic, value);
+
+            }
+
+            @Override
+            public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+                super.onCharacteristicWrite(gatt, characteristic, status);
+            }
+
+            @Override
+            public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+                super.onDescriptorWrite(gatt, descriptor, status);
+            }
+        };
+
 
         myList = (ListView)findViewById(R.id.ListViewBleDevices);
         myListAdapter = new MyListAdapter(this.getLayoutInflater());
@@ -98,8 +140,10 @@ public class MainActivity extends AppCompatActivity {
         myList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                BluetoothDeviceParameters item = (BluetoothDeviceParameters)myListAdapter.getItem(position);
-                Toast toast = Toast.makeText(getApplicationContext(), item.Name, Toast.LENGTH_SHORT);
+                BluetoothDevice item = (BluetoothDevice)myListAdapter.getItem(position);
+                @SuppressLint("MissingPermission") BluetoothGatt server = item.connectGatt(getApplicationContext(),false, serverCallback );
+                server.setCharacteristicNotification()
+                @SuppressLint("MissingPermission") Toast toast = Toast.makeText(getApplicationContext(), "Connecting to device: " + item.getName(), Toast.LENGTH_SHORT);
                 toast.show();
             }
         });
@@ -148,10 +192,8 @@ public class MainActivity extends AppCompatActivity {
                     @SuppressLint("MissingPermission")
                     @Override
                     public void onScanResult(int callbackType, ScanResult result) {
-
                         BluetoothDevice device = result.getDevice();
-                        myListAdapter.addItem(new BluetoothDeviceParameters(device.getAddress(), device.getName()));
-                       myListAdapter.notifyDataSetChanged();
+                        myListAdapter.addItem(device);
                        bluetoothLeScanner.stopScan(leScanCallback);
                     }
                 };
@@ -179,10 +221,14 @@ public class MainActivity extends AppCompatActivity {
         }
 
         private LayoutInflater mInflanter;
-        private ArrayList<BluetoothDeviceParameters> myListItems;
+        private ArrayList<BluetoothDevice> myListItems;
 
-        public void addItem(BluetoothDeviceParameters item){
-            myListItems.add(item);
+        public void addItem(BluetoothDevice item)
+        {
+            if (!isDeviceAlreadyAdded(item)) {
+                myListItems.add(item);
+                notifyDataSetChanged(); // Make sure to notify the adapter about the data change
+            }
         }
 
         @Override
@@ -200,6 +246,7 @@ public class MainActivity extends AppCompatActivity {
             return position;
         }
 
+        @SuppressLint("MissingPermission")
         @Override
         public View getView(int position, View view, ViewGroup parent) {
 
@@ -215,12 +262,23 @@ public class MainActivity extends AppCompatActivity {
                 viewHolder = (ViewHolder)view.getTag();
             }
 
-            BluetoothDeviceParameters item = myListItems.get(position);
-            viewHolder.textView1.setText(item.Name);
-            viewHolder.textView2.setText(item.MacAddress);
+            BluetoothDevice item = myListItems.get(position);
+            viewHolder.textView1.setText(item.getAddress());
+            viewHolder.textView2.setText(item.getName());
             viewHolder.textView3.setText("Hello World");
 
             return view;
         }
+
+        private boolean isDeviceAlreadyAdded(BluetoothDevice newDevice) {
+            for (BluetoothDevice device : myListItems) {
+                if (device.getAddress().equals(newDevice.getAddress())) {
+                    return true; // Device already in the list
+                }
+            }
+            return false; // Device not found in the list
+        }
+
+
     }
 }
