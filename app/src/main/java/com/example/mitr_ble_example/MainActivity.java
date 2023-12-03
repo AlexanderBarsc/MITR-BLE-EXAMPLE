@@ -119,7 +119,9 @@ public class MainActivity extends AppCompatActivity {
 
     public static class ViewHolder
     {
-      TextView textView;
+      TextView textView1;
+      TextView textView2;
+      TextView textView3;
     }
 
     private void scanLeDevice() {
@@ -203,17 +205,20 @@ public class MainActivity extends AppCompatActivity {
 
            ViewHolder viewHolder;
             if(view == null){
-                view = mInflanter.inflate(R.layout.activity_main, null);
+                view = mInflanter.inflate(R.layout.list_item, null);
                 viewHolder = new ViewHolder();
-                viewHolder.textView = (TextView) view.findViewById(R.id.list_item_text1);
+                viewHolder.textView1 = (TextView) view.findViewById(R.id.list_item_text1);
+                viewHolder.textView2 = (TextView) view.findViewById(R.id.list_item_text2);
+                viewHolder.textView3 = (TextView) view.findViewById(R.id.list_item_text3);
                 view.setTag(viewHolder);
             } else {
                 viewHolder = (ViewHolder)view.getTag();
             }
 
             BluetoothDeviceParameters item = myListItems.get(position);
-            viewHolder.textView.setText(item.Name);
-
+            viewHolder.textView1.setText(item.Name);
+            viewHolder.textView2.setText(item.MacAddress);
+            viewHolder.textView3.setText("Hello World");
 
             return view;
         }
