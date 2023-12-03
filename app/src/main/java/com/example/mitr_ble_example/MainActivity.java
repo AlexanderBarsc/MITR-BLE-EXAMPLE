@@ -4,7 +4,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -17,12 +16,10 @@ import android.bluetooth.le.ScanResult;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.ListView;
@@ -30,8 +27,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -109,7 +104,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        setContentView(R.layout.activity_main);
+
 
         Button button = (Button) findViewById(R.id.button);
         button.setOnClickListener(new View.OnClickListener() {
@@ -124,7 +119,7 @@ public class MainActivity extends AppCompatActivity {
 
     public static class ViewHolder
     {
-      TextView bluetoothDeviceParameters;
+      TextView textView;
     }
 
     private void scanLeDevice() {
@@ -210,13 +205,15 @@ public class MainActivity extends AppCompatActivity {
             if(view == null){
                 view = mInflanter.inflate(R.layout.activity_main, null);
                 viewHolder = new ViewHolder();
-
+                viewHolder.textView = (TextView) view.findViewById(R.id.list_item_text1);
                 view.setTag(viewHolder);
             } else {
                 viewHolder = (ViewHolder)view.getTag();
             }
 
             BluetoothDeviceParameters item = myListItems.get(position);
+            viewHolder.textView.setText(item.Name);
+
 
             return view;
         }
