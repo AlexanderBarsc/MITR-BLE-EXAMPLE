@@ -34,33 +34,33 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final String Service_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+    private static final String Characteristic_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
     MyListAdapter myListAdapter;
     ListView myList;
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothLeScanner bluetoothLeScanner;
-
     private TextView measuredValue;
-
     BluetoothGattCharacteristic characteristic;
-
     private BluetoothGatt bluetoothGatt;
-
     private boolean isConnected;
-
     private Timer myTimer;
+    private Button button;
+    private long TimerPeriod = 500;
 
     public MainActivity()
     {
         isConnected = false;
     }
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,10 +73,8 @@ public class MainActivity extends AppCompatActivity {
 
         bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
 
-        // TODO - tohle nejak rozumne napsat
+        //TODO - Adjust this a little bit more later
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
 
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.BLUETOOTH_CONNECT}, 1);
             // here to request the missing permissions, and then overriding
@@ -87,8 +85,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
 
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
             // here to request the missing permissions, and then overriding
@@ -99,8 +95,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
 
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
             // here to request the missing permissions, and then overriding
@@ -116,15 +110,15 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
 
+
                 if (BluetoothProfile.STATE_CONNECTED == newState) {
 
-                    MainActivity.this.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            myList.setVisibility(View.GONE);
-                            Toast toast = Toast.makeText(getApplicationContext(), "Connected to device", Toast.LENGTH_SHORT);
-                            toast.show();
-                        }
+                    MainActivity.this.runOnUiThread(() -> {
+                        myList.setVisibility(View.GONE);
+                        button.setText(R.string.Disconnect);
+                        measuredValue.setVisibility(View.VISIBLE);
+                        Toast toast = Toast.makeText(getApplicationContext(), "Connected to device", Toast.LENGTH_SHORT);
+                        toast.show();
                     });
 
                     isConnected = true;
@@ -133,37 +127,40 @@ public class MainActivity extends AppCompatActivity {
 
                 } else if (BluetoothProfile.STATE_DISCONNECTED == newState)
                 {
-                    myList.setVisibility(View.INVISIBLE);
+                    MainActivity.this.runOnUiThread(() -> {
+                        myList.setVisibility(View.VISIBLE);
+                        button.setText(R.string.Scan);
+                        Toast toast = Toast.makeText(getApplicationContext(), "Disconnect from device", Toast.LENGTH_SHORT);
+                        toast.show();
+                    });
                     isConnected = false;
-
                 }
 
-                // super.onConnectionStateChange(gatt, status, newState);
             }
 
             @Override
             public void onCharacteristicRead(@NonNull BluetoothGatt gatt, @NonNull BluetoothGattCharacteristic characteristic, @NonNull byte[] value, int status) {
 
-                String text = "Measured value: " + littleEndianByteArrayToInt(value);
+                String currentDateAndTime = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date());
+                String text = "Measured value: " + Integer.toString(littleEndianByteArrayToInt(value)) + "\r\n" + "At: " + currentDateAndTime;
                 updateTextView(text);
 
             }
 
             @Override
             public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-
-                BluetoothGattService service = gatt.getService(UUID.fromString("4fafc201-1fb5-459e-8fcc-c5c9c331914b"));
-                characteristic = service.getCharacteristic(UUID.fromString("beb5483e-36e1-4688-b7f5-ea07361b26a8"));
-
+                //TODO - Check if it is really ESP32
+                BluetoothGattService service = gatt.getService(UUID.fromString(Service_UUID));
+                characteristic = service.getCharacteristic(UUID.fromString(Characteristic_UUID));
             }
 
 
         };
 
+        measuredValue = findViewById(R.id.measuredValue);
+        measuredValue.setVisibility(View.INVISIBLE);
 
-        myList = (ListView)findViewById(R.id.ListViewBleDevices);
-        measuredValue = (TextView)findViewById(R.id.measuredValue);
-        measuredValue.setText("");
+        myList = findViewById(R.id.ListViewBleDevices);
         myListAdapter = new MyListAdapter(this.getLayoutInflater());
         myList.setAdapter(myListAdapter);
         myList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -171,7 +168,6 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 BluetoothDevice item = (BluetoothDevice)myListAdapter.getItem(position);
-
                 bluetoothGatt = item.connectGatt(getApplicationContext(),false, serverCallback );
                 @SuppressLint("MissingPermission") Toast toast = Toast.makeText(getApplicationContext(), "Connecting to device: " + item.getName(), Toast.LENGTH_SHORT);
                 toast.show();
@@ -179,18 +175,19 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-        Button button = (Button) findViewById(R.id.button);
+        button = findViewById(R.id.button);
         button.setOnClickListener(new View.OnClickListener() {
+            @SuppressLint("MissingPermission")
             @Override
             public void onClick(View v) {
                 // code to be executed when button is clicked
-                if(isConnected)
+                if(!isConnected)
                 {
                     scanLeDevice();
                 }
                 else
                 {
-
+                    bluetoothGatt.disconnect();
                 }
 
             }
@@ -204,7 +201,7 @@ public class MainActivity extends AppCompatActivity {
                 TimerMethod();
             }
 
-        }, 0, 5000);
+        }, 0, TimerPeriod);
 
     }
 
@@ -227,12 +224,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void updateTextView(final String s) {
+    private void updateTextView(final String string) {
         MainActivity.this.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                TextView tv= (TextView) findViewById(R.id.measuredValue);
-                tv.setText(s);
+                TextView textView = findViewById(R.id.measuredValue);
+                textView.setText(string);
             }
         });
     }

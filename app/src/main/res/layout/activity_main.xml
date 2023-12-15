@@ -14,7 +14,7 @@
         android:layout_marginBottom="220dp"
         android:layout_x="155dp"
         android:layout_y="426dp"
-        android:text="@string/Connect"
+        android:text="@string/Scan"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
