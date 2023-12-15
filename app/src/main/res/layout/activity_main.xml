@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<AbsoluteLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -17,21 +17,23 @@
         android:text="@string/Scan"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.784" />
+        app:layout_constraintVertical_bias="1.0" />
 
     <ListView
         android:id="@+id/ListViewBleDevices"
-        android:layout_width="409dp"
-        android:layout_height="268dp"
+        android:layout_width="362dp"
+        android:layout_height="226dp"
         android:layout_x="-2dp"
         android:layout_y="5dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.489"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.22">
+        app:layout_constraintVertical_bias="0.144">
 
     </ListView>
 
@@ -39,8 +41,16 @@
         android:id="@+id/measuredValue"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="138dp"
+        android:layout_marginTop="106dp"
+        android:layout_marginEnd="138dp"
+        android:layout_marginBottom="39dp"
         android:layout_x="94dp"
         android:layout_y="358dp"
-        android:text="@string/MeasuredValue" />
+        android:text="@string/MeasuredValue"
+        app:layout_constraintBottom_toTopOf="@+id/button"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/ListViewBleDevices" />
 
-</AbsoluteLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
