@@ -14,6 +14,7 @@ import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.bluetooth.le.BluetoothLeScanner;
@@ -22,6 +23,7 @@ import android.bluetooth.le.ScanResult;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -33,6 +35,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -41,11 +46,19 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothLeScanner bluetoothLeScanner;
 
-    // Stops scanning after 10 seconds.
-    private static final long SCAN_PERIOD = 10000;
+    private TextView measuredValue;
+
+    BluetoothGattCharacteristic characteristic;
+
+    private BluetoothGatt bluetoothGatt;
+
+    private boolean isConnected;
+
+    private Timer myTimer;
 
     public MainActivity()
     {
+        isConnected = false;
     }
 
 
@@ -98,13 +111,31 @@ public class MainActivity extends AppCompatActivity {
         }
 
         BluetoothGattCallback serverCallback = new BluetoothGattCallback() {
+
+            @SuppressLint("MissingPermission")
             @Override
             public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
 
-                if(BluetoothProfile.STATE_CONNECTED == newState)
+                if (BluetoothProfile.STATE_CONNECTED == newState) {
+
+                    MainActivity.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            myList.setVisibility(View.GONE);
+                            Toast toast = Toast.makeText(getApplicationContext(), "Connected to device", Toast.LENGTH_SHORT);
+                            toast.show();
+                        }
+                    });
+
+                    isConnected = true;
+
+                    gatt.discoverServices();
+
+                } else if (BluetoothProfile.STATE_DISCONNECTED == newState)
                 {
-                    Toast toast = Toast.makeText(getApplicationContext(), "Connect to device", Toast.LENGTH_SHORT);
-                    toast.show();
+                    myList.setVisibility(View.INVISIBLE);
+                    isConnected = false;
+
                 }
 
                 // super.onConnectionStateChange(gatt, status, newState);
@@ -112,42 +143,40 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onCharacteristicRead(@NonNull BluetoothGatt gatt, @NonNull BluetoothGattCharacteristic characteristic, @NonNull byte[] value, int status) {
-                super.onCharacteristicRead(gatt, characteristic, value, status);
-            }
 
-            @Override
-            public void onCharacteristicChanged(@NonNull BluetoothGatt gatt,
-                                                @NonNull BluetoothGattCharacteristic characteristic, @NonNull byte[] value) {
-                super.onCharacteristicChanged(gatt, characteristic, value);
+                String text = "Measured value: " + littleEndianByteArrayToInt(value);
+                updateTextView(text);
 
             }
 
             @Override
-            public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-                super.onCharacteristicWrite(gatt, characteristic, status);
+            public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+
+                BluetoothGattService service = gatt.getService(UUID.fromString("4fafc201-1fb5-459e-8fcc-c5c9c331914b"));
+                characteristic = service.getCharacteristic(UUID.fromString("beb5483e-36e1-4688-b7f5-ea07361b26a8"));
+
             }
 
-            @Override
-            public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
-                super.onDescriptorWrite(gatt, descriptor, status);
-            }
+
         };
 
 
         myList = (ListView)findViewById(R.id.ListViewBleDevices);
+        measuredValue = (TextView)findViewById(R.id.measuredValue);
+        measuredValue.setText("");
         myListAdapter = new MyListAdapter(this.getLayoutInflater());
         myList.setAdapter(myListAdapter);
         myList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @SuppressLint("MissingPermission")
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 BluetoothDevice item = (BluetoothDevice)myListAdapter.getItem(position);
-                @SuppressLint("MissingPermission") BluetoothGatt server = item.connectGatt(getApplicationContext(),false, serverCallback );
-                server.setCharacteristicNotification()
+
+                bluetoothGatt = item.connectGatt(getApplicationContext(),false, serverCallback );
                 @SuppressLint("MissingPermission") Toast toast = Toast.makeText(getApplicationContext(), "Connecting to device: " + item.getName(), Toast.LENGTH_SHORT);
                 toast.show();
             }
         });
-
 
 
         Button button = (Button) findViewById(R.id.button);
@@ -155,17 +184,64 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 // code to be executed when button is clicked
-                scanLeDevice();
+                if(isConnected)
+                {
+                    scanLeDevice();
+                }
+                else
+                {
+
+                }
+
             }
         });
 
+
+        myTimer = new Timer();
+        myTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                TimerMethod();
+            }
+
+        }, 0, 5000);
+
     }
+
+    @SuppressLint("MissingPermission")
+    private void TimerMethod()
+    {
+        //This method is called directly by the timer
+        //and runs in the same thread as the timer.
+          if(isConnected) {
+                //We call the method that will work with the UI
+                //through the runOnUiThread method.
+
+              if(characteristic != null)
+              {
+                  bluetoothGatt.readCharacteristic(characteristic);
+              }
+
+            }
+
+    }
+
+
+    private void updateTextView(final String s) {
+        MainActivity.this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                TextView tv= (TextView) findViewById(R.id.measuredValue);
+                tv.setText(s);
+            }
+        });
+    }
+
 
     public static class ViewHolder
     {
       TextView textView1;
       TextView textView2;
-      TextView textView3;
     }
 
     private void scanLeDevice() {
@@ -212,6 +288,17 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
+    public static int littleEndianByteArrayToInt(byte[] byteArray) {
+
+        // Convert the bytes to an int using bitwise operations for little-endian order
+        int result = 0;
+        for (int i = 3; i >= 0; i--) {
+            result = (result << 8) | (byteArray[i] & 0xFF);
+        }
+
+        return result;
+    }
+
     private class MyListAdapter extends BaseAdapter{
 
         public MyListAdapter(LayoutInflater inflater){
@@ -256,16 +343,14 @@ public class MainActivity extends AppCompatActivity {
                 viewHolder = new ViewHolder();
                 viewHolder.textView1 = (TextView) view.findViewById(R.id.list_item_text1);
                 viewHolder.textView2 = (TextView) view.findViewById(R.id.list_item_text2);
-                viewHolder.textView3 = (TextView) view.findViewById(R.id.list_item_text3);
                 view.setTag(viewHolder);
             } else {
                 viewHolder = (ViewHolder)view.getTag();
             }
 
             BluetoothDevice item = myListItems.get(position);
-            viewHolder.textView1.setText(item.getAddress());
-            viewHolder.textView2.setText(item.getName());
-            viewHolder.textView3.setText("Hello World");
+            viewHolder.textView1.setText(item.getName());
+            viewHolder.textView2.setText(item.getAddress());
 
             return view;
         }

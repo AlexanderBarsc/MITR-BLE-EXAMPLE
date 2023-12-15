@@ -35,4 +35,12 @@
 
     </ListView>
 
+    <TextView
+        android:id="@+id/measuredValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_x="94dp"
+        android:layout_y="358dp"
+        android:text="@string/MeasuredValue" />
+
 </AbsoluteLayout>
